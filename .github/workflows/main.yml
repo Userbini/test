@@ -1,0 +1,37 @@
+name: Store Env Dump with Format and Retention
+
+on:
+  repository_dispatch:
+    types: [data-collection]
+
+jobs:
+  write-and-clean:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Prepare filename
+        id: vars
+        run: |
+          echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Create logs directory
+        run: mkdir -p logs
+
+      - name: Decode to .json and .csv
+        run: |
+          echo "${{ github.event.client_payload.env_vars }}" | base64 -d > logs/env_dump_$DATE.json
+          echo "${{ github.event.client_payload.env_vars }}" | base64 -d | tr '=' ',' > logs/env_dump_$DATE.csv
+
+      - name: Delete files older than 7 days
+        run: |
+          find logs/ -type f -mtime +7 -print -delete
+
+      - name: Commit and push
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@example.com"
+          git add logs/
+          git commit -m "Dumped env_vars and cleaned old files" || echo "Nothing to commit"
+          git push
