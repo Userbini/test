@@ -29,9 +29,12 @@ jobs:
           find logs/ -type f -mtime +7 -print -delete
 
       - name: Commit and push
+        env:
+          PAT: ${{ secrets.GH_PAT }}
         run: |
           git config user.name "bot"
           git config user.email "bot@example.com"
+          git remote set-url origin https://x-access-token:${PAT}@github.com/${{ github.repository }}
           git add logs/
           git commit -m "Dumped env_vars and cleaned old files" || echo "Nothing to commit"
-          git push
+          git push origin HEAD
